@@ -9,7 +9,23 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
+  final _form = GlobalKey<FormState>();
+  String _enteredEmail = '';
+  String _enteredPass = '';
   var _isLogin = true;
+
+  void _submitAuth() {
+    var isValid = _form.currentState!.validate();
+    if (!isValid) {
+      return;
+    }
+    if(_isLogin) {
+      //fetch user and authenticate
+    } else{
+      //create new user and authenticate
+    }
+    _form.currentState!.save();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +48,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(15),
                     child: Form(
+                      key: _form,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -48,7 +65,9 @@ class _AuthScreenState extends State<AuthScreen> {
                               }
                               return null;
                             },
-                            onSaved: (password){},
+                            onSaved: (email){
+                              _enteredEmail = email!;
+                            },
                             style: GoogleFonts.ubuntu(
                               textStyle: TextStyle(
                                   fontSize: 16,
@@ -67,7 +86,9 @@ class _AuthScreenState extends State<AuthScreen> {
                               }
                               return null;
                             },
-                            onSaved: (password){},
+                            onSaved: (password){
+                              _enteredPass = password!;
+                            },
                             style: GoogleFonts.ubuntu(
                               textStyle: TextStyle(
                                   fontSize: 16,
@@ -79,7 +100,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             height: 25,
                           ),
                           ElevatedButton(
-                            onPressed: (){},
+                            onPressed: _submitAuth,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
                             ),
