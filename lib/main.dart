@@ -1,3 +1,4 @@
+import 'package:chat_app/auth.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -6,7 +7,9 @@ void main() {
 final theme = ThemeData().copyWith(
   useMaterial3: true,
   colorScheme: ColorScheme.fromSeed(
-      seedColor: const Color.fromARGB(255, 180, 17, 50)), //ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 200, 050, 020))
+      //brightness: Brightness.dark,
+      seedColor: const Color.fromARGB(255, 180, 50, 50)
+  ), //ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 200, 050, 020))
 );
 
 class MyApp extends StatelessWidget {
@@ -18,7 +21,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Chat\'in',
       theme: theme,
-      home: ...,
+      home: const AuthScreen(),
     );
   }
 }
