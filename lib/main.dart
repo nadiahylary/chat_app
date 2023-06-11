@@ -22,7 +22,7 @@ final _kTheme = ThemeData().copyWith(
   ), //ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 200, 050, 020))
 );
 
-final _kFirebase = FirebaseAuth.instance;
+final _kFirebaseAuth = FirebaseAuth.instance;
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
       title: 'Chat\'in',
       theme: _kTheme,
       home: StreamBuilder(
-        stream: _kFirebase.authStateChanges(),
+        stream: _kFirebaseAuth.authStateChanges(),
         builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
           if(snapshot.connectionState == ConnectionState.waiting){
             return const LoadingScreen();

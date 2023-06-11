@@ -1,12 +1,13 @@
 import 'dart:io';
 
 import 'package:chat_app/user_image_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-final _kFirebase = FirebaseAuth.instance;
+final _kFirebaseAuth = FirebaseAuth.instance;
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({Key? key}) : super(key: key);
@@ -21,41 +22,58 @@ class _AuthScreenState extends State<AuthScreen> {
   String _enteredPass = '';
   var _isLogin = true;
   File? _userImageFile;
+  var _isAuthenticating = false;
 
   void _submitAuth() async {
     var isValid = _form.currentState!.validate();
+
     if (!isValid || !_isLogin && _userImageFile == null) {
       return;
     }
     _form.currentState!.save();
 
     try {
+      setState(() {
+        _isAuthenticating = true;
+      });
       if (_isLogin) {
-        //fetch user and authenticate
-        final userCredentials = await _kFirebase.signInWithEmailAndPassword(
+        //fetching user credentials and authenticate
+        final userCredentials = await _kFirebaseAuth.signInWithEmailAndPassword(
             email: _enteredEmail, password: _enteredPass);
       } else {
-        //create new user and authenticate
-        final userCredentials = await _kFirebase.createUserWithEmailAndPassword(
+        //create new user and authenticating with firebase auth
+        final userCredentials = await _kFirebaseAuth.createUserWithEmailAndPassword(
             email: _enteredEmail, password: _enteredPass);
+
+        //creating and saving user profile images in firebase_storage on signup
         final imageStorageRef = FirebaseStorage.instance
             .ref()
             .child('user_profile_images')
             .child('${userCredentials.user!.uid}.jpg');
 
-        imageStorageRef.putFile(_userImageFile!);
+        await imageStorageRef.putFile(_userImageFile!);
         final userProfileImageUrl = await imageStorageRef.getDownloadURL();
         print(userProfileImageUrl);
-        
+
+        //creating and saving users data on cloud_firestore on signup
+        await FirebaseFirestore.instance.collection('users').doc(userCredentials.user!.uid).set({
+          'username': '', //todo,
+          'email': _enteredEmail,
+          'imageUrl': userProfileImageUrl
+        });
+
       }
     } on FirebaseAuthException catch (error) {
       ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        backgroundColor: Theme.of(context).colorScheme.secondary,
-        //duration: const Duration(seconds: 3),
-        content:
-            Text(error.message ?? "Authentication Failed. Please try again."),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Theme.of(context).colorScheme.secondary,
+            content: Text(error.message ?? "Authentication Failed. Please try again."),
+        )
+      );
+      setState(() {
+        _isAuthenticating = false;
+      });
     }
   }
 
@@ -143,8 +161,11 @@ class _AuthScreenState extends State<AuthScreen> {
                             ),
                           ),
                           const SizedBox(
-                            height: 25,
+                            height: 30,
                           ),
+                          if(_isAuthenticating)
+                            const Center(child: CircularProgressIndicator(),),
+                          if(!_isAuthenticating)
                           ElevatedButton(
                             onPressed: _submitAuth,
                             style: ElevatedButton.styleFrom(
@@ -166,6 +187,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           const SizedBox(
                             height: 40,
                           ),
+                          if(!_isAuthenticating)
                           TextButton(
                             onPressed: () {
                               setState(() {
