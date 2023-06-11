@@ -1,4 +1,8 @@
+import 'dart:io';
+
+import 'package:chat_app/user_image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -16,56 +20,66 @@ class _AuthScreenState extends State<AuthScreen> {
   String _enteredEmail = '';
   String _enteredPass = '';
   var _isLogin = true;
+  File? _userImageFile;
 
   void _submitAuth() async {
     var isValid = _form.currentState!.validate();
-    if (!isValid) {
+    if (!isValid || !_isLogin && _userImageFile == null) {
       return;
     }
     _form.currentState!.save();
+
     try {
       if (_isLogin) {
         //fetch user and authenticate
-       final userCredentials = await _kFirebase.signInWithEmailAndPassword(
-              email: _enteredEmail, password: _enteredPass);
-       print(userCredentials);
+        final userCredentials = await _kFirebase.signInWithEmailAndPassword(
+            email: _enteredEmail, password: _enteredPass);
       } else {
         //create new user and authenticate
-        final userCredentials = await _kFirebase
-            .createUserWithEmailAndPassword(
-              email: _enteredEmail, password: _enteredPass);
-        print(userCredentials);
-      }
-    }on FirebaseAuthException catch (error) {
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: Theme.of(context).colorScheme.secondary,
-            //duration: const Duration(seconds: 3),
-            content: Text(error.message ?? "Authentication Failed. Please try again."),
-          )
-      );
-    }
+        final userCredentials = await _kFirebase.createUserWithEmailAndPassword(
+            email: _enteredEmail, password: _enteredPass);
+        final imageStorageRef = FirebaseStorage.instance
+            .ref()
+            .child('user_profile_images')
+            .child('${userCredentials.user!.uid}.jpg');
 
+        imageStorageRef.putFile(_userImageFile!);
+        final userProfileImageUrl = await imageStorageRef.getDownloadURL();
+        print(userProfileImageUrl);
+        
+      }
+    } on FirebaseAuthException catch (error) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: Theme.of(context).colorScheme.secondary,
+        //duration: const Duration(seconds: 3),
+        content:
+            Text(error.message ?? "Authentication Failed. Please try again."),
+      ));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
+      backgroundColor: Theme.of(context).colorScheme.background,
       body: Center(
         child: SingleChildScrollView(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                margin: const EdgeInsets.only(top: 30, left: 20, right: 20),
+                margin: _isLogin
+                    ? const EdgeInsets.only(top: 25, left: 20, right: 20)
+                    : const EdgeInsets.only(top: 10, left: 20, right: 20),
                 width: 300,
                 child: Image.asset("assets/images/chat_icon.png"),
               ),
               Card(
                 elevation: 6,
-                margin: const EdgeInsets.symmetric(vertical: 20, horizontal: 30),
+                margin: _isLogin
+                    ? const EdgeInsets.symmetric(vertical: 20, horizontal: 30)
+                    : const EdgeInsets.symmetric(vertical: 10, horizontal: 30),
                 child: SingleChildScrollView(
                   child: Padding(
                     padding: const EdgeInsets.all(15),
@@ -74,6 +88,12 @@ class _AuthScreenState extends State<AuthScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          if (!_isLogin)
+                            UserImagePicker(
+                              onPickedImage: (userImage) {
+                                _userImageFile = userImage;
+                              },
+                            ),
                           TextFormField(
                             decoration: const InputDecoration(
                               labelText: "email or username",
@@ -81,20 +101,23 @@ class _AuthScreenState extends State<AuthScreen> {
                             keyboardType: TextInputType.emailAddress,
                             autocorrect: false,
                             textCapitalization: TextCapitalization.none,
-                            validator: (value){
-                              if(value == null || value.trim().isEmpty || !value.trim().contains('@')){
+                            validator: (value) {
+                              if (value == null ||
+                                  value.trim().isEmpty ||
+                                  !value.trim().contains('@')) {
                                 return 'Please enter a valid email address.';
                               }
                               return null;
                             },
-                            onSaved: (email){
+                            onSaved: (email) {
                               _enteredEmail = email!;
                             },
                             style: GoogleFonts.ubuntu(
                               textStyle: TextStyle(
                                   fontSize: 16,
-                                  color: Theme.of(context).colorScheme.onSecondaryContainer
-                              ),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSecondaryContainer),
                             ),
                           ),
                           TextFormField(
@@ -102,20 +125,21 @@ class _AuthScreenState extends State<AuthScreen> {
                               labelText: "password",
                             ),
                             obscureText: true,
-                            validator: (value){
-                              if(value == null || value.trim().length < 6){
+                            validator: (value) {
+                              if (value == null || value.trim().length < 6) {
                                 return 'Password should be >= 6 characters long.';
                               }
                               return null;
                             },
-                            onSaved: (password){
+                            onSaved: (password) {
                               _enteredPass = password!;
                             },
                             style: GoogleFonts.ubuntu(
                               textStyle: TextStyle(
                                   fontSize: 16,
-                                  color: Theme.of(context).colorScheme.onSecondaryContainer
-                              ),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSecondaryContainer),
                             ),
                           ),
                           const SizedBox(
@@ -124,16 +148,18 @@ class _AuthScreenState extends State<AuthScreen> {
                           ElevatedButton(
                             onPressed: _submitAuth,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
+                              backgroundColor: Theme.of(context)
+                                  .colorScheme
+                                  .onSecondaryContainer,
                             ),
                             child: Text(
-                              _isLogin ? "Login" : "Signup" ,
+                              _isLogin ? "Login" : "Signup",
                               style: GoogleFonts.balthazar(
                                 textStyle: TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.w600,
-                                    color: Theme.of(context).colorScheme.primary
-                                ),
+                                    color:
+                                        Theme.of(context).colorScheme.primary),
                               ),
                             ),
                           ),
@@ -141,20 +167,22 @@ class _AuthScreenState extends State<AuthScreen> {
                             height: 40,
                           ),
                           TextButton(
-                            onPressed: (){
+                            onPressed: () {
                               setState(() {
-                               _isLogin = !_isLogin;
+                                _isLogin = !_isLogin;
                               });
                             },
                             child: Text(
-                                _isLogin ? "Sign up instead.": "I already have an account.",
+                              _isLogin
+                                  ? "Sign up instead."
+                                  : "I already have an account.",
                               style: GoogleFonts.ubuntu(
                                 textStyle: TextStyle(
                                     fontSize: 16,
-                                    color: Theme.of(context).colorScheme.primary
-                                ),
+                                    color:
+                                        Theme.of(context).colorScheme.primary),
+                              ),
                             ),
-                          ),
                           )
                         ],
                       ),
