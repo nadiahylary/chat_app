@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:chat_app/user_image_picker.dart';
+import 'package:chat_app/widgets/user_image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -19,6 +19,7 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   final _form = GlobalKey<FormState>();
   String _enteredEmail = '';
+  String _enteredUsername = '';
   String _enteredPass = '';
   var _isLogin = true;
   File? _userImageFile;
@@ -57,7 +58,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
         //creating and saving users data on cloud_firestore on signup
         await FirebaseFirestore.instance.collection('users').doc(userCredentials.user!.uid).set({
-          'username': '', //todo,
+          'username': _enteredUsername,
           'email': _enteredEmail,
           'imageUrl': userProfileImageUrl
         });
@@ -114,7 +115,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             ),
                           TextFormField(
                             decoration: const InputDecoration(
-                              labelText: "email or username",
+                              labelText: "email",
                             ),
                             keyboardType: TextInputType.emailAddress,
                             autocorrect: false,
@@ -129,6 +130,34 @@ class _AuthScreenState extends State<AuthScreen> {
                             },
                             onSaved: (email) {
                               _enteredEmail = email!;
+                            },
+                            style: GoogleFonts.ubuntu(
+                              textStyle: TextStyle(
+                                  fontSize: 16,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSecondaryContainer),
+                            ),
+                          ),
+                          if(!_isLogin)
+                          TextFormField(
+                            decoration: const InputDecoration(
+                              labelText: "username",
+                            ),
+                            keyboardType: TextInputType.name,
+                            autocorrect: false,
+                            textCapitalization: TextCapitalization.none,
+                            enableSuggestions: false,
+                            validator: (value) {
+                              if (value == null ||
+                                  value.trim().isEmpty ||
+                                  value.trim().length < 5) {
+                                return 'Username should be at least 5 characters.';
+                              }
+                              return null;
+                            },
+                            onSaved: (username) {
+                              _enteredUsername = username!;
                             },
                             style: GoogleFonts.ubuntu(
                               textStyle: TextStyle(
