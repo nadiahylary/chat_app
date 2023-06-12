@@ -21,7 +21,7 @@ class ChatMessages extends StatelessWidget {
         if(snapshot.connectionState == ConnectionState.waiting){
           return const LoadingScreen();
         }
-        if(!snapshot.hasData || snapshot.data.docs.isEmpty){
+        if(!snapshot.hasData || snapshot.data!.docs.isEmpty){
           return const Center(
             child: Text("No messages yet..."),
           );
@@ -31,7 +31,7 @@ class ChatMessages extends StatelessWidget {
             child: Text("Uh oh! Something went wrong..."),
           );
         }
-        final loadedMsgs = snapshot.data.docs;
+        final loadedMsgs = snapshot.data!.docs;
         return ListView.builder(
           padding: const EdgeInsets.only(left: 12, right: 12, bottom: 30),
           reverse: true,
